@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SwarmPilot — Adversarial Multi-Agent Driving</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0a0a0f; color: #e0e0e0; font-family: 'Segoe UI', monospace; overflow-x: hidden; }
+
+  header {
+    background: linear-gradient(90deg, #0f0c29, #302b63, #24243e);
+    padding: 12px 24px;
+    display: flex; align-items: center; gap: 16px;
+    border-bottom: 1px solid #30304a;
+  }
+  header h1 { font-size: 1.4rem; color: #a78bfa; letter-spacing: 2px; }
+  header .badge { background: #7c3aed; padding: 3px 10px; border-radius: 12px; font-size: 0.7rem; }
+
+  .scene-bar {
+    background: #12121e; padding: 8px 24px;
+    display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+    border-bottom: 1px solid #1e1e3a;
+  }
+  .scene-bar button {
+    background: #1e1e3a; border: 1px solid #30304a; color: #a0a0c0;
+    padding: 4px 14px; border-radius: 6px; cursor: pointer; font-size: 0.8rem;
+    transition: all 0.2s;
+  }
+  .scene-bar button:hover, .scene-bar button.active { background: #7c3aed; color: white; border-color: #7c3aed; }
+  .scene-bar .run-btn {
+    background: #059669; color: white; border-color: #059669;
+    font-weight: bold; padding: 6px 20px;
+  }
+  .scene-bar .run-btn:hover { background: #047857; }
+  .scene-bar .run-btn.running { background: #dc2626; border-color: #dc2626; }
+
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 0;
+    height: calc(100vh - 100px);
+  }
+
+  /* Left: camera + vision panels */
+  .vision-panel {
+    display: grid;
+    grid-template-rows: 1fr 160px;
+    background: #080812;
+    border-right: 1px solid #1e1e3a;
+  }
+  .camera-view {
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+    background: #000;
+    overflow: hidden;
+  }
+  .camera-view img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  .camera-overlay {
+    position: absolute; top: 10px; left: 10px;
+    display: flex; gap: 8px; flex-direction: column;
+  }
+  .hud-pill {
+    background: rgba(0,0,0,0.7); padding: 4px 10px; border-radius: 20px;
+    font-size: 0.75rem; border: 1px solid #30304a;
+  }
+  .action-display {
+    position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
+    background: rgba(124,58,237,0.9); padding: 8px 24px; border-radius: 20px;
+    font-size: 1.1rem; font-weight: bold; letter-spacing: 2px;
+    transition: all 0.3s;
+  }
+  .action-display.veto { background: rgba(220,38,38,0.9); }
+  .action-display.safe { background: rgba(5,150,105,0.9); }
+
+  .minimap-row {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    border-top: 1px solid #1e1e3a;
+  }
+  .mini-view { position: relative; overflow: hidden; }
+  .mini-view img { width: 100%; height: 100%; object-fit: cover; opacity: 0.9; }
+  .mini-label {
+    position: absolute; bottom: 4px; left: 6px;
+    font-size: 0.65rem; background: rgba(0,0,0,0.7); padding: 2px 6px; border-radius: 4px;
+    color: #a0a0c0;
+  }
+
+  /* Right: agents panel */
+  .agents-panel {
+    display: flex; flex-direction: column;
+    background: #0c0c1a;
+    overflow: hidden;
+  }
+
+  .speed-bar {
+    padding: 12px 16px;
+    border-bottom: 1px solid #1e1e3a;
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .metric-box {
+    background: #12121e; border-radius: 8px; padding: 8px 12px;
+    border: 1px solid #1e1e3a;
+  }
+  .metric-box .val { font-size: 1.4rem; font-weight: bold; color: #a78bfa; }
+  .metric-box .lbl { font-size: 0.65rem; color: #6060a0; text-transform: uppercase; }
+
+  .debate-log {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .debate-log::-webkit-scrollbar { width: 4px; }
+  .debate-log::-webkit-scrollbar-track { background: #12121e; }
+  .debate-log::-webkit-scrollbar-thumb { background: #30304a; border-radius: 2px; }
+
+  .agent-bubble {
+    border-radius: 10px; padding: 10px 12px;
+    font-size: 0.78rem; line-height: 1.5;
+    animation: slideIn 0.3s ease-out;
+    border-left: 3px solid transparent;
+    position: relative;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .agent-bubble .agent-name {
+    font-size: 0.65rem; font-weight: bold; text-transform: uppercase;
+    letter-spacing: 1px; margin-bottom: 4px;
+  }
+  .bubble-pilot   { background: #0d1f3c; border-color: #3b82f6; }
+  .bubble-critic  { background: #1f0d0d; border-color: #ef4444; }
+  .bubble-safety  { background: #0d1f0d; border-color: #22c55e; }
+  .bubble-expert  { background: #1f1a0d; border-color: #f59e0b; }
+  .bubble-auditor { background: #1a0d1f; border-color: #a855f7; }
+  .bubble-judge   { background: #0d1f1f; border-color: #06b6d4; font-weight: bold; }
+
+  .verdict-badge {
+    display: inline-block; padding: 2px 8px; border-radius: 10px;
+    font-size: 0.65rem; font-weight: bold; margin-left: 6px;
+  }
+  .v-safe     { background: #064e3b; color: #34d399; }
+  .v-unsafe   { background: #450a0a; color: #f87171; }
+  .v-uncertain{ background: #451a03; color: #fbbf24; }
+  .v-veto     { background: #450a0a; color: #ff6b6b; }
+
+  .convergence-bar {
+    padding: 8px 16px; border-top: 1px solid #1e1e3a;
+    background: #080812;
+  }
+  .conv-track {
+    background: #1e1e3a; border-radius: 4px; height: 6px; overflow: hidden;
+  }
+  .conv-fill {
+    height: 100%; background: linear-gradient(90deg, #7c3aed, #06b6d4);
+    transition: width 0.5s ease;
+    border-radius: 4px;
+  }
+  .conv-label { font-size: 0.65rem; color: #6060a0; margin-top: 4px; }
+
+  .round-tab {
+    font-size: 0.7rem; color: #6060a0; padding: 4px 0;
+    border-bottom: 1px solid #1e1e3a; margin-bottom: 4px;
+    display: flex; justify-content: space-between;
+  }
+  .round-tab span { color: #a78bfa; }
+
+  #status-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: #080812; border-top: 1px solid #1e1e3a;
+    padding: 4px 16px; font-size: 0.7rem; color: #6060a0;
+    display: flex; justify-content: space-between;
+  }
+  .loading-spinner {
+    display: inline-block; width: 12px; height: 12px;
+    border: 2px solid #30304a; border-top-color: #a78bfa;
+    border-radius: 50%; animation: spin 0.8s linear infinite;
+    margin-right: 6px; vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>⚡ SWARMPILOT</h1>
+  </div>
+  <span class="badge">Cerebras × Gemma 4 31B</span>
+  <span class="badge" style="background:#064e3b;">6 Agents</span>
+  <span class="badge" style="background:#0c4a6e;">Adversarial Debate</span>
+  <div style="margin-left:auto; font-size:0.75rem; color:#6060a0;">
+    Multi-Agent Autonomous Driving · PROClaim + D3 Architecture
+  </div>
+</header>
+
+<div class="scene-bar">
+  <span style="font-size:0.75rem; color:#6060a0;">Scene:</span>
+  <div id="scene-buttons"></div>
+  <button class="run-btn" id="run-btn" onclick="toggleAuto()">▶ RUN</button>
+  <button onclick="runOnce()" style="background:#1e1e3a;border:1px solid #30304a;color:#a0a0c0;padding:4px 14px;border-radius:6px;cursor:pointer;font-size:0.8rem;">Step</button>
+  <span id="frame-counter" style="font-size:0.75rem;color:#6060a0;margin-left:8px;">Frame: 0</span>
+</div>
+
+<div class="main-grid">
+  <!-- Vision Panel -->
+  <div class="vision-panel">
+    <div class="camera-view">
+      <img id="main-camera" src="" alt="camera feed" style="display:none;">
+      <div id="camera-placeholder" style="color:#30304a;font-size:1.2rem;">Camera feed will appear here</div>
+      <div class="camera-overlay">
+        <div class="hud-pill" id="scene-hud">Scene: —</div>
+        <div class="hud-pill" id="hazard-hud">Hazard: —</div>
+      </div>
+      <div class="action-display" id="action-display">WAITING</div>
+    </div>
+    <div class="minimap-row">
+      <div class="mini-view">
+        <img id="mini-rgb" src="" alt="RGB">
+        <div class="mini-label">📷 RGB</div>
+      </div>
+      <div class="mini-view">
+        <img id="mini-flow" src="" alt="Optical Flow" style="filter:hue-rotate(60deg)">
+        <div class="mini-label">🌊 Optical Flow</div>
+      </div>
+      <div class="mini-view">
+        <img id="mini-depth" src="" alt="Depth">
+        <div class="mini-label">🔥 Depth Heatmap</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Agents Panel -->
+  <div class="agents-panel">
+    <div class="speed-bar">
+      <div class="metric-box">
+        <div class="val" id="metric-total">—</div>
+        <div class="lbl">Total Debate (ms)</div>
+      </div>
+      <div class="metric-box">
+        <div class="val" id="metric-avg">—</div>
+        <div class="lbl">Avg Agent (ms)</div>
+      </div>
+      <div class="metric-box">
+        <div class="val" id="metric-rounds">—</div>
+        <div class="lbl">Rounds</div>
+      </div>
+      <div class="metric-box">
+        <div class="val" id="metric-action" style="font-size:0.9rem;">—</div>
+        <div class="lbl">Final Action</div>
+      </div>
+    </div>
+
+    <div class="debate-log" id="debate-log">
+      <div style="color:#30304a;font-size:0.8rem;margin:auto;text-align:center;padding:20px;">
+        Agent debate will appear here in real-time.<br><br>
+        Click ▶ RUN to start the multi-agent debate loop.
+      </div>
+    </div>
+
+    <div class="convergence-bar">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+        <span class="conv-label">CONSENSUS CONFIDENCE</span>
+        <span class="conv-label" id="conv-pct">0%</span>
+      </div>
+      <div class="conv-track"><div class="conv-fill" id="conv-fill" style="width:0%"></div></div>
+      <div class="conv-label" id="conv-status" style="margin-top:4px;">Waiting for debate...</div>
+    </div>
+  </div>
+</div>
+
+<div id="status-bar">
+  <span id="status-left">Ready — Select a scene and click RUN</span>
+  <span id="status-right">Cerebras Gemma 4 31B · 100 RPM · 65K Context</span>
+</div>
+
+<script>
+const API = '';
+let selectedScene = null;
+let autoRunning = false;
+let autoTimer = null;
+let frameCount = 0;
+
+// Load scenes
+async function loadScenes() {
+  const r = await fetch(API + '/scenes');
+  const d = await r.json();
+  const container = document.getElementById('scene-buttons');
+  container.style.display = 'flex';
+  container.style.gap = '6px';
+  container.style.flexWrap = 'wrap';
+  d.scenes.forEach(s => {
+    const btn = document.createElement('button');
+    btn.textContent = s.replace(/_/g, ' ');
+    btn.dataset.scene = s;
+    btn.onclick = () => {
+      selectedScene = s;
+      document.querySelectorAll('.scene-bar button[data-scene]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    };
+    container.appendChild(btn);
+  });
+}
+
+function toggleAuto() {
+  if (autoRunning) {
+    autoRunning = false;
+    clearTimeout(autoTimer);
+    document.getElementById('run-btn').textContent = '▶ RUN';
+    document.getElementById('run-btn').classList.remove('running');
+    setStatus('Paused');
+  } else {
+    autoRunning = true;
+    document.getElementById('run-btn').textContent = '⏸ PAUSE';
+    document.getElementById('run-btn').classList.add('running');
+    runLoop();
+  }
+}
+
+async function runLoop() {
+  if (!autoRunning) return;
+  await runOnce();
+  if (autoRunning) autoTimer = setTimeout(runLoop, 800);
+}
+
+async function runOnce() {
+  setStatus('<span class="loading-spinner"></span>Running 6-agent debate...');
+  const body = selectedScene ? { scene: selectedScene } : {};
+  try {
+    const t0 = performance.now();
+    const r = await fetch(API + '/debate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await r.json();
+    const clientMs = Math.round(performance.now() - t0);
+    frameCount++;
+    renderResult(data, clientMs);
+    setStatus(`Frame ${frameCount} complete · ${Math.round(data.total_ms)}ms total · Action: ${data.final_action}`);
+  } catch (e) {
+    setStatus('Error: ' + e.message);
+    if (autoRunning) toggleAuto();
+  }
+}
+
+function renderResult(data, clientMs) {
+  // Update camera
+  if (data.frame_b64) {
+    const img = document.getElementById('main-camera');
+    img.src = 'data:image/jpeg;base64,' + data.frame_b64;
+    img.style.display = 'block';
+    document.getElementById('camera-placeholder').style.display = 'none';
+    document.getElementById('mini-rgb').src = 'data:image/jpeg;base64,' + data.frame_b64;
+  }
+  if (data.flow_b64) document.getElementById('mini-flow').src = 'data:image/jpeg;base64,' + data.flow_b64;
+  if (data.depth_b64) document.getElementById('mini-depth').src = 'data:image/jpeg;base64,' + data.depth_b64;
+
+  // HUD
+  const sceneStr = data.scene || '';
+  document.getElementById('scene-hud').textContent = 'Scene: ' + (sceneStr.match(/Scene: ([^.]+)/)?.[1] || '?');
+  document.getElementById('hazard-hud').textContent = 'Hazard: ' + (data.hazard || 'none');
+  document.getElementById('frame-counter').textContent = 'Frame: ' + frameCount;
+
+  // Action display
+  const ad = document.getElementById('action-display');
+  ad.textContent = data.final_action;
+  ad.className = 'action-display';
+  if (data.safety_vetoed) ad.classList.add('veto');
+  else if (['MAINTAIN', 'ACCELERATE'].includes(data.final_action)) ad.classList.add('safe');
+
+  // Metrics
+  document.getElementById('metric-total').textContent = Math.round(data.total_ms) + 'ms';
+  document.getElementById('metric-avg').textContent = Math.round(data.avg_agent_ms) + 'ms';
+  document.getElementById('metric-rounds').textContent = data.rounds?.length || '—';
+  document.getElementById('metric-action').textContent = data.final_action;
+
+  // Convergence bar
+  const conf = data.final_confidence || 0;
+  document.getElementById('conv-fill').style.width = (conf * 100) + '%';
+  document.getElementById('conv-pct').textContent = Math.round(conf * 100) + '%';
+  document.getElementById('conv-status').textContent =
+    data.converged ? '✓ Consensus reached' :
+    data.safety_vetoed ? '🛑 Safety veto — debate ended' :
+    'Debate ongoing...';
+
+  // Debate log
+  renderDebateLog(data.rounds || []);
+}
+
+function renderDebateLog(rounds) {
+  const log = document.getElementById('debate-log');
+  log.innerHTML = '';
+  rounds.forEach(round => {
+    const tab = document.createElement('div');
+    tab.className = 'round-tab';
+    tab.innerHTML = `<span>Round ${round.round}</span><span>${Math.round(round.round_ms)}ms</span>`;
+    log.appendChild(tab);
+
+    addBubble(log, 'pilot', '🚗 Pilot',
+      `Action: <strong>${round.pilot_action}</strong> (confidence: ${(round.pilot_confidence*100).toFixed(0)}%)
+      <br>${round.pilot_reasoning}`);
+
+    const criticClass = round.critic_verdict === 'SAFE' ? 'v-safe' :
+                        round.critic_verdict === 'UNSAFE' ? 'v-unsafe' : 'v-uncertain';
+    addBubble(log, 'critic', '🔍 Critic',
+      `Verdict: <span class="verdict-badge ${criticClass}">${round.critic_verdict}</span>
+      ${round.critic_flaw ? `<br>⚠ ${round.critic_flaw}` : ''}
+      <br>${round.critic_reasoning}`);
+
+    if (round.safety_veto) {
+      addBubble(log, 'safety', '🛑 Safety Magistrate',
+        `<span class="verdict-badge v-veto">VETO</span> ${round.safety_reasoning}`);
+    } else {
+      addBubble(log, 'safety', '✅ Safety Magistrate', round.safety_reasoning);
+    }
+
+    if (round.expert_domain) {
+      addBubble(log, 'expert', `🎓 Expert (${round.expert_domain})`, 'Summoned for specialist advice');
+    }
+
+    addBubble(log, 'auditor', '🔄 Consistency Auditor',
+      `${round.auditor_consistent ? '✓ Consistent' : '✗ Contradiction detected'}
+      ${round.auditor_reasoning ? '<br>' + round.auditor_reasoning : ''}`);
+
+    addBubble(log, 'judge', '⚖ Consensus Judge',
+      `<strong>FINAL: ${round.judge_action}</strong><br>${round.judge_summary}`);
+  });
+
+  log.scrollTop = log.scrollHeight;
+}
+
+function addBubble(container, type, name, text) {
+  const div = document.createElement('div');
+  div.className = `agent-bubble bubble-${type}`;
+  div.innerHTML = `<div class="agent-name">${name}</div>${text}`;
+  container.appendChild(div);
+}
+
+function setStatus(msg) {
+  document.getElementById('status-left').innerHTML = msg;
+}
+
+loadScenes();
+</script>
+</body>
+</html>

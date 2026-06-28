@@ -1,0 +1,146 @@
+{
+  "highway": {
+    "scene_name": "highway",
+    "final_action": "Slow down or adjust lane position to safely accommodate the merging vehicle",
+    "final_confidence": 0.98,
+    "total_ms": 6892.017756999962,
+    "safety_vetoed": true,
+    "rounds": [
+      {
+        "round": 1,
+        "pilot_action": "Maintain speed and lane",
+        "pilot_reasoning": "The vehicle is currently traveling at a steady speed of 65km/h on a highway merg",
+        "critic_verdict": "UNSAFE",
+        "critic_flaw": "The Pilot failed to detect the merging vehicle (represented by the red rectangle",
+        "critic_reasoning": "The Pilot's assessment that there are 'no immediate hazards' is incorrect. The v",
+        "safety_veto": true,
+        "safety_reasoning": "The Pilot claims there are no hazards, but the visual data and the Critic correc",
+        "auditor_reasoning": "The visual evidence clearly shows a vehicle merging from the right, and the scen",
+        "judge_action": "Slow down or adjust lane position to safely accommodate the merging vehicle",
+        "judge_summary": "The Pilot failed to identify a merging vehicle explicitly labeled as a hazard. T",
+        "expert_domain": null,
+        "round_ms": 6892.008553999972
+      }
+    ]
+  },
+  "pedestrian": {
+    "scene_name": "pedestrian",
+    "final_action": "STOP",
+    "final_confidence": 1.0,
+    "total_ms": 6738.757352999983,
+    "safety_vetoed": false,
+    "rounds": [
+      {
+        "round": 1,
+        "pilot_action": "STOP",
+        "pilot_reasoning": "The vehicle is at an intersection and there is a red light hazard present; stayi",
+        "critic_verdict": "SAFE",
+        "critic_flaw": "",
+        "critic_reasoning": "The vehicle is currently at a complete stop (0 km/h) at an intersection. The pre",
+        "safety_veto": false,
+        "safety_reasoning": "The vehicle is currently stopped at an intersection with a red light hazard. The",
+        "auditor_reasoning": "The original Pilot and Critic were in complete agreement that the vehicle must r",
+        "judge_action": "STOP",
+        "judge_summary": "The Pilot recommends STOP with maximum confidence due to a pedestrian crossing h",
+        "expert_domain": null,
+        "round_ms": 6738.738976000036
+      }
+    ]
+  },
+  "rain": {
+    "scene_name": "rain",
+    "final_action": "STOP",
+    "final_confidence": 1.0,
+    "total_ms": 8459.025693000058,
+    "safety_vetoed": false,
+    "rounds": [
+      {
+        "round": 1,
+        "pilot_action": "STOP",
+        "pilot_reasoning": "The vehicle is at an intersection and there is a clear red light signal visible.",
+        "critic_verdict": "SAFE",
+        "critic_flaw": "",
+        "critic_reasoning": "The vehicle is currently stationary (0 km/h) at an intersection facing a red lig",
+        "safety_veto": false,
+        "safety_reasoning": "The pilot's decision to stop at a red light at an intersection is the correct an",
+        "auditor_reasoning": "The original Pilot plan and Critic objection were in complete agreement: the veh",
+        "judge_action": "STOP",
+        "judge_summary": "The Pilot recommends STOP with maximum confidence due to a red light hazard at a",
+        "expert_domain": null,
+        "round_ms": 8459.014379999986
+      }
+    ]
+  },
+  "intersect": {
+    "scene_name": "intersect",
+    "final_action": "STOP",
+    "final_confidence": 1.0,
+    "total_ms": 4864.0042450000465,
+    "safety_vetoed": false,
+    "rounds": [
+      {
+        "round": 1,
+        "pilot_action": "STOP",
+        "pilot_reasoning": "The vehicle is at an intersection and the traffic light is red; therefore, the o",
+        "critic_verdict": "SAFE",
+        "critic_flaw": "",
+        "critic_reasoning": "The vehicle is currently at a complete stop (0 km/h) at an intersection facing a",
+        "safety_veto": false,
+        "safety_reasoning": "The vehicle is currently stopped at a red light at an intersection. Remaining st",
+        "auditor_reasoning": "The environment clearly indicates a red light at an intersection with the vehicl",
+        "judge_action": "STOP",
+        "judge_summary": "The Pilot recommended STOP due to a red light hazard at an intersection. The Cri",
+        "expert_domain": null,
+        "round_ms": 4863.957863999985
+      }
+    ]
+  },
+  "merge": {
+    "scene_name": "merge",
+    "final_action": "Slightly reduce speed and maintain monitoring of the merging vehicle to create a safety buffer.",
+    "final_confidence": 0.9,
+    "total_ms": 6953.598529000033,
+    "safety_vetoed": false,
+    "rounds": [
+      {
+        "round": 1,
+        "pilot_action": "Maintain speed and monitor merging vehicle",
+        "pilot_reasoning": "The highway is clear and current speed is stable. While a vehicle is merging, th",
+        "critic_verdict": "UNSAFE",
+        "critic_flaw": "The plan assumes the merging vehicle will perfectly match the ego vehicle's spee",
+        "critic_reasoning": "Maintaining a constant speed of 80 km/h while a vehicle is merging is risky beca",
+        "safety_veto": false,
+        "safety_reasoning": "The pilot's plan to maintain speed while monitoring a merging vehicle is a stand",
+        "auditor_reasoning": "The role reversal is logically consistent: the Pilot now adopts the Critic's saf",
+        "judge_action": "Slightly reduce speed and maintain monitoring of the merging vehicle to create a safety buffer.",
+        "judge_summary": "The Pilot initially proposed maintaining speed, but the Critic correctly identif",
+        "expert_domain": "Highway Merge Dynamics",
+        "round_ms": 6953.585178000026
+      }
+    ]
+  },
+  "school": {
+    "scene_name": "school",
+    "final_action": "Immediately reduce speed to 10 km/h, execute a full stop if any movement is detected, and activate hazard lights to warn trailing traffic.",
+    "final_confidence": 0.98,
+    "total_ms": 9283.086357000002,
+    "safety_vetoed": false,
+    "rounds": [
+      {
+        "round": 1,
+        "pilot_action": "Decelerate and prepare to stop",
+        "pilot_reasoning": "The combination of a rainy night, low visibility, and the presence of children a",
+        "critic_verdict": "UNCERTAIN",
+        "critic_flaw": "The instruction 'prepare to stop' is qualitatively ambiguous and lacks a quantit",
+        "critic_reasoning": "While the general intent to slow down is correct, the lack of precision in the p",
+        "safety_veto": false,
+        "safety_reasoning": "The Pilot's instruction to decelerate and prepare to stop in the presence of chi",
+        "auditor_reasoning": "The original Pilot plan ('decelerate and prepare to stop') is too ambiguous for ",
+        "judge_action": "Immediately reduce speed to 10 km/h, execute a full stop if any movement is detected, and activate hazard lights to warn trailing traffic.",
+        "judge_summary": "The Pilot's initial suggestion was too vague for a high-risk scenario involving ",
+        "expert_domain": "School Zone Safety",
+        "round_ms": 9283.079292000024
+      }
+    ]
+  }
+}

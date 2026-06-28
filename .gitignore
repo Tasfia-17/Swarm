@@ -1,0 +1,22 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+.env.*
+*.egg-info/
+dist/
+build/
+
+# Large raw intermediate videos (keep only finals)
+swarm_demo_1280.mp4
+swarm_demo_final.mp4
+swarm_pilot_HD.mp4
+swarm_pilot_HD_final.mp4
+swarm_pilot_60s.mp4
+swarm_pilot_sim_raw.mp4
+swarm_pilot_sim_raw2.mp4
+swarm_pilot_sim.mp4
+swarm_pilot_sim_final.mp4
+swarm_pilot_final.mp4
+swarm_pilot_demo.mp4
+swarm_demo_v2.mp4
